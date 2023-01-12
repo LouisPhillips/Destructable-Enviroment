@@ -57,11 +57,11 @@ public class CreateSections : MonoBehaviour
                         Vector3 vector = transform.position;
                         GameObject cubes = (GameObject)Instantiate(mesh, vector + new Vector3(x, y, z), Quaternion.identity);
                         cubes.gameObject.GetComponent<MeshRenderer>().material = gameObject.GetComponent<MeshRenderer>().material;
-                        cubes.AddComponent<Split>();
+                        cubes.AddComponent<RefactoredSplit>();
                         cubes.transform.parent = topple.transform;
                         //cubes.AddComponent<CollapseDetection>();
-                        cubes.AddComponent<FixedJoint>();
-                        cubes.AddComponent<ArticulationBody>();
+                        //cubes.AddComponent<FixedJoint>();
+                        //cubes.AddComponent<ArticulationBody>();
                     }
                 }
             }

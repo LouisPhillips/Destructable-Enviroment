@@ -7,6 +7,7 @@ TagManager:
   - Box
   - placeholder
   - Collidable
+  - Splitable
   layers:
   - Default
   - TransparentFX

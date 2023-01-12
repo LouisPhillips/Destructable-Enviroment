@@ -12,14 +12,6 @@ public class Split : MonoBehaviour
 
     public int CutCascades = 4;
     public float ExplodeForce = 200;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-
-    }
-
-    // Update is called once per frame
     
 
     private void DestroyMesh(GameObject impactObject)
@@ -69,6 +61,8 @@ public class Split : MonoBehaviour
             parts[i].GameObject.GetComponent<Rigidbody>().AddForceAtPosition(-impactObject.transform.position * ExplodeForce, impactObject.transform.position);
         }
         transform.parent = null;
+        Destroy(GetComponent<ArticulationBody>());
+        Destroy(GetComponent<FixedJoint>());
         Destroy(gameObject);
     }
 
@@ -301,9 +295,6 @@ public class Split : MonoBehaviour
             collider.convex = true;
 
             var rigidbody = GameObject.AddComponent<Rigidbody>();
-            //var meshDestroy = GameObject.AddComponent<Split>();
-            //meshDestroy.CutCascades = original.CutCascades;
-            //meshDestroy.ExplodeForce = original.ExplodeForce;
 
             var despawn = GameObject.AddComponent<Despawn>();
         }
