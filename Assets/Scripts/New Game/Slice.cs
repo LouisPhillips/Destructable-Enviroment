@@ -9,8 +9,8 @@ public class Slice : MonoBehaviour
     // Start is called before the first frame update
     void Awake()
     {
-        baseObj = GameObject.Find("Bottom");
-        tipObj = GameObject.Find("Tip");
+        //baseObj = GameObject.Find("Bottom");
+        //tipObj = GameObject.Find("Tip");
     }
 
     // Update is called once per frame
@@ -18,26 +18,28 @@ public class Slice : MonoBehaviour
     {
         
     }
-
-    private void OnCollisionEnter(UnityEngine.Collision collider)
+    private void OnTriggerExit(Collider collider)
     {
-        collider.gameObject.GetComponent<ObjectSplit>().slice(collider);
         if (collider.gameObject.tag == ("Slicable"))
         {
-            collider.gameObject.GetComponent<ObjectSplit>().hiltEntryPoint = baseObj.transform.position;
-            collider.gameObject.GetComponent<ObjectSplit>().tipEntryPoint = tipObj.transform.position;
+            GetComponent<ObjectSplit>().SliceObject(collider);
         }
     }
 
-    private void OnCollisionExit(UnityEngine.Collision collider)
+    private void OnCollisionEnter(UnityEngine.Collision collider)
+    {   
+        
+    }
+
+    /*private void OnCollisionExit(UnityEngine.Collision collider)
     {
         if (collider.gameObject.tag == ("Slicable"))
         {
             collider.gameObject.GetComponent<ObjectSplit>().tipExitPoint = tipObj.transform.position;
             //collider.gameObject.GetComponent<ObjectSplit>().Cut(collider.transform);
 
-            collider.gameObject.GetComponent<ObjectSplit>().slice(collider);
+            collider.gameObject.GetComponent<ObjectSplit>().SliceObject(collider);
         }
 
-    }
+    }*/
 }

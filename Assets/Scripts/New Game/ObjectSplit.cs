@@ -14,37 +14,11 @@ public class ObjectSplit : MonoBehaviour
     public Vector3 pointA;
     public Vector3 pointB;
 
-    private Mesh original;
-
     private float timer = 1;
-    
 
-    public void Cut(Transform intersectedObj)
-    {
-        side1 = tipExitPoint - tipEntryPoint;
-        side2 = tipExitPoint - hiltEntryPoint;
-
-        Vector3 normal = Vector3.Cross(side1, side2).normalized;
-
-        Vector3 transformedNormal = ((Vector3)(intersectedObj.gameObject.transform.localToWorldMatrix.transpose * normal)).normalized;
-
-        Vector3 transformedStartingPoint = intersectedObj.gameObject.transform.InverseTransformPoint(tipEntryPoint);
-
-        Plane plane = new Plane();
-
-        plane.SetNormalAndPosition(transformedNormal, transformedStartingPoint);
-
-        if(transformedNormal.x < 0 || transformedNormal.y < 0)
-        {
-            plane = plane.flipped;
-        }
-
-
-
-        DrawPlane(tipEntryPoint, tipExitPoint, hiltEntryPoint, 5, Color.red, 500);
-
-
-    }
+    Vector3 normal;
+    List<Triangle> newTriangles1;
+    List<Triangle> newTriangles2;
 
     struct Triangle
     {
@@ -73,11 +47,10 @@ public class ObjectSplit : MonoBehaviour
         }
     }
 
-    void CreatePlane(Collision other)
+    public void SliceObject(Collider other)
     {
         Collider coll = GetComponent<Collider>();
 
-        /*// Create cutting plane
         Vector3 vec1 = coll.bounds.center;
         vec1 += transform.up * coll.bounds.extents.y;
         Vector3 vec2 = coll.bounds.center;
@@ -87,57 +60,36 @@ public class ObjectSplit : MonoBehaviour
         vec3 += transform.up * -coll.bounds.extents.y;
         vec3 += transform.right * coll.bounds.extents.x;
 
-        Plane pl = new Plane(vec1, vec2, vec3);
-        Transform tr = other.transform;
-        Mesh m = other.gameObject.GetComponent<MeshFilter>().mesh;
-        //int[] triangles = m.triangles;
-        Vector3[] verts = m.vertices;
-
-        //List<Vector3> intersections = new List<Vector3>();
-        //List<Triangle> newTris1 = new List<Triangle>();
-        //List<Triangle> newTris2 = new List<Triangle>();*/
-
-        //
-        side1 = tipExitPoint - tipEntryPoint;
-        side2 = tipExitPoint - hiltEntryPoint;
-
-        Vector3 normal = Vector3.Cross(side1, side2).normalized;
-
+/*
         Vector3 transformedNormal = ((Vector3)(other.gameObject.transform.localToWorldMatrix.transpose * normal)).normalized;
 
         Vector3 transformedStartingPoint = other.gameObject.transform.InverseTransformPoint(tipEntryPoint);
+*/
+        Plane plane = new Plane(vec1, vec2, vec3);
 
-        Plane plane = new Plane();
-
-        plane.SetNormalAndPosition(transformedNormal, transformedStartingPoint);
+        /*plane.SetNormalAndPosition(transformedNormal, transformedStartingPoint);
 
         if (transformedNormal.x < 0 || transformedNormal.y < 0)
         {
             plane = plane.flipped;
         }
-
+*/
         int[] triangles = other.gameObject.GetComponent<MeshFilter>().mesh.triangles;
         Vector3[] verticies = other.gameObject.GetComponent<MeshFilter>().mesh.vertices;
 
         List<Vector3> intersections = new List<Vector3>();
-        List<Triangle> newTriangles1 = new List<Triangle>();
-        List<Triangle> newTriangles2 = new List<Triangle>();
+        newTriangles1 = new List<Triangle>();
+        newTriangles2 = new List<Triangle>();
 
-        CheckTriangles(other, plane, normal, triangles, verticies, intersections, newTriangles1, newTriangles2);
+        CheckTriangles(other, plane, triangles, verticies, intersections, newTriangles1, newTriangles2);
     }
 
 
-    void Update()
-    {
-        if (timer > 0)
-        {
-            timer -= Time.deltaTime;
-        }
-    }
 
-    void CheckTriangles(Collision collisionObject, Plane plane, Vector3 normal, int[] tris, Vector3[] verts, List<Vector3> intersections, List<Triangle> newTris1, List<Triangle> newTris2)
+
+    void CheckTriangles(Collider collisionObject, Plane plane, int[] tris, Vector3[] verts, List<Vector3> intersections, List<Triangle> newTris1, List<Triangle> newTris2)
     {
-        for(int i = 0; i< tris.Length; i += 3)
+        for (int i = 0; i < tris.Length; i += 3)
         {
             List<Vector3> points = new List<Vector3>();
 
@@ -149,283 +101,267 @@ public class ObjectSplit : MonoBehaviour
             Vector3 point3 = collisionObject.transform.TransformPoint(verts[vert3]);
 
             Vector3 direction = point2 - point1;
-            float ent;
+            float length;
 
             Vector3 intersection;
-
-            if (plane.Raycast(new Ray(point1, direction), out ent) && ent <= direction.magnitude)
+            Debug.Log(plane.distance);
+            if (plane.Raycast(new Ray(point1, direction), out length) && length <= direction.magnitude)
             {
-
+                intersection = point1 + length * direction.normalized;
+                TriangleIntersection(points, intersections, intersection);
             }
-        }
-    }
+            direction = point3 - point2;
 
-    public void slice(UnityEngine.Collision other)
-    {
-        Collider coll = GetComponent<Collider>();
-
-        // Create cutting plane
-        Vector3 vec1 = coll.bounds.center;
-        vec1 += transform.up * coll.bounds.extents.y;
-        Vector3 vec2 = coll.bounds.center;
-        vec2 += transform.up * coll.bounds.extents.y;
-        vec2 += transform.right * coll.bounds.extents.x;
-        Vector3 vec3 = coll.bounds.center;
-        vec3 += transform.up * -coll.bounds.extents.y;
-        vec3 += transform.right * coll.bounds.extents.x;
-
-        Plane pl = new Plane(vec1, vec2, vec3);
-        Transform tr = other.transform;
-        Mesh m = other.gameObject.GetComponent<MeshFilter>().mesh;
-        int[] triangles = m.triangles;
-        Vector3[] verts = m.vertices;
-
-        List<Vector3> intersections = new List<Vector3>();
-        List<Triangle> newTris1 = new List<Triangle>();
-        List<Triangle> newTris2 = new List<Triangle>();
-
-        /////////////////////////////////////////////////////
-
-        // Loop through tris
-        for (int i = 0; i < triangles.Length; i += 3)
-        {
-            List<Vector3> points = new List<Vector3>();
-
-            int v1 = triangles[i];
-            int v2 = triangles[i + 1];
-            int v3 = triangles[i + 2];
-            Vector3 p1 = tr.TransformPoint(verts[v1]);
-            Vector3 p2 = tr.TransformPoint(verts[v2]);
-            Vector3 p3 = tr.TransformPoint(verts[v3]);
-            Vector3 norm = Vector3.Cross(p1 - p2, p1 - p3);
-
-            Vector3 dir = p2 - p1;
-            float ent;
-
-            // Check if tris are intersected
-            if (pl.Raycast(new Ray(p1, dir), out ent) && ent <= dir.magnitude)
+            if (plane.Raycast(new Ray(point2, direction), out length) && length <= direction.magnitude)
             {
-                Vector3 intersection = p1 + ent * dir.normalized;
-                intersections.Add(intersection);
-                points.Add(intersection);
+                intersection = point2 + length * direction.normalized;
+                TriangleIntersection(points, intersections, intersection);
             }
-            dir = p3 - p2;
-            if (pl.Raycast(new Ray(p2, dir), out ent) && ent <= dir.magnitude)
-            {
-                Vector3 intersection = p2 + ent * dir.normalized;
-                intersections.Add(intersection);
-                points.Add(intersection);
-            }
-            dir = p3 - p1;
-            if (pl.Raycast(new Ray(p1, dir), out ent) && ent <= dir.magnitude)
-            {
-                Vector3 intersection = p1 + ent * dir.normalized;
-                intersections.Add(intersection);
-                points.Add(intersection);
-            }
+            direction = point3 - point1;
 
-            // Group tris and create new tris
+            if (plane.Raycast(new Ray(point1, direction), out length) && length <= direction.magnitude)
+            {
+                intersection = point1 + length * direction.normalized;
+                TriangleIntersection(points, intersections, intersection);
+            }
+            
             if (points.Count > 0)
             {
-                Debug.Assert(points.Count == 2);
-                List<Vector3> points1 = new List<Vector3>();
-                List<Vector3> points2 = new List<Vector3>();
-                // Intersection verts
-                points1.AddRange(points);
-                points2.AddRange(points);
-                // Check which side the original vert was
-                if (pl.GetSide(p1))
-                {
-                    points1.Add(p1);
-                }
-                else
-                {
-                    points2.Add(p1);
-                }
-                if (pl.GetSide(p2))
-                {
-                    points1.Add(p2);
-                }
-                else
-                {
-                    points2.Add(p2);
-                }
-                if (pl.GetSide(p3))
-                {
-                    points1.Add(p3);
-                }
-                else
-                {
-                    points2.Add(p3);
-                }
-
-                if (points1.Count == 3)
-                {
-                    Triangle tri = new Triangle() { v1 = points1[1], v2 = points1[0], v3 = points1[2] };
-                    tri.matchDirection(norm);
-                    newTris1.Add(tri);
-                }
-                else
-                {
-                    Debug.Assert(points1.Count == 4);
-                    if (Vector3.Dot((points1[0] - points1[1]), points1[2] - points1[3]) >= 0)
-                    {
-                        Triangle tri = new Triangle() { v1 = points1[0], v2 = points1[2], v3 = points1[3] };
-                        tri.matchDirection(norm);
-                        newTris1.Add(tri);
-                        tri = new Triangle() { v1 = points1[0], v2 = points1[3], v3 = points1[1] };
-                        tri.matchDirection(norm);
-                        newTris1.Add(tri);
-                    }
-                    else
-                    {
-                        Triangle tri = new Triangle() { v1 = points1[0], v2 = points1[3], v3 = points1[2] };
-                        tri.matchDirection(norm);
-                        newTris1.Add(tri);
-                        tri = new Triangle() { v1 = points1[0], v2 = points1[2], v3 = points1[1] };
-                        tri.matchDirection(norm);
-                        newTris1.Add(tri);
-                    }
-                }
-
-                if (points2.Count == 3)
-                {
-                    Triangle tri = new Triangle() { v1 = points2[1], v2 = points2[0], v3 = points2[2] };
-                    tri.matchDirection(norm);
-                    newTris2.Add(tri);
-                }
-                else
-                {
-                    Debug.Assert(points2.Count == 4);
-                    if (Vector3.Dot((points2[0] - points2[1]), points2[2] - points2[3]) >= 0)
-                    {
-                        Triangle tri = new Triangle() { v1 = points2[0], v2 = points2[2], v3 = points2[3] };
-                        tri.matchDirection(norm);
-                        newTris2.Add(tri);
-                        tri = new Triangle() { v1 = points2[0], v2 = points2[3], v3 = points2[1] };
-                        tri.matchDirection(norm);
-                        newTris2.Add(tri);
-                    }
-                    else
-                    {
-                        Triangle tri = new Triangle() { v1 = points2[0], v2 = points2[3], v3 = points2[2] };
-                        tri.matchDirection(norm);
-                        newTris2.Add(tri);
-                        tri = new Triangle() { v1 = points2[0], v2 = points2[2], v3 = points2[1] };
-                        tri.matchDirection(norm);
-                        newTris2.Add(tri);
-                    }
-                }
+                // Make new triangles based off entry points
+                MakeNewTriangles(plane, points, point1, point2, point3);
             }
             else
             {
-                if (pl.GetSide(p1))
+                if (plane.GetSide(point1))
                 {
-                    newTris1.Add(new Triangle() { v1 = p1, v2 = p2, v3 = p3 });
+                    newTriangles1.Add(new Triangle() { v1 = point1, v2 = point2, v3 = point3 });
                 }
                 else
                 {
-                    newTris2.Add(new Triangle() { v1 = p1, v2 = p2, v3 = p3 });
+                    newTriangles2.Add(new Triangle() { v1 = point1, v2 = point2, v3 = point3 });
                 }
             }
         }
 
+        MakeObject(plane, intersections, collisionObject);
+    }
+
+    void MakeNewTriangles(Plane plane, List<Vector3> points, Vector3 point1, Vector3 point2, Vector3 point3)
+    {
+        List<Vector3> leftSide = new List<Vector3>();
+        List<Vector3> rightSide = new List<Vector3>();
+
+        leftSide.AddRange(points);
+        rightSide.AddRange(points);
+
+        if (plane.GetSide(point1))
+        {
+            leftSide.Add(point1);
+        }
+        else
+        {
+            rightSide.Add(point1);
+        }
+
+        if (plane.GetSide(point2))
+        {
+            leftSide.Add(point2);
+        }
+        else
+        {
+            rightSide.Add(point2);
+        }
+
+        if (plane.GetSide(point3))
+        {
+            leftSide.Add(point3);
+        }
+        else
+        {
+            rightSide.Add(point3);
+        }
+
+        if (leftSide.Count == 3)
+        {
+            Triangle tri = new Triangle()
+            { v1 = leftSide[1], v2 = leftSide[0], v3 = leftSide[2] };
+            tri.matchDirection(normal);
+            newTriangles1.Add(tri);
+        }
+        else
+        {
+            if (Vector3.Dot((leftSide[0] - leftSide[1]), leftSide[2] - leftSide[3]) >= 0)
+            {
+                Triangle tri = new Triangle()
+                { v1 = leftSide[0], v2 = leftSide[2], v3 = leftSide[3] };
+                tri.matchDirection(normal);
+                newTriangles1.Add(tri);
+                tri = new Triangle()
+                { v1 = leftSide[0], v2 = leftSide[3], v3 = leftSide[1] };
+                tri.matchDirection(normal);
+                newTriangles1.Add(tri);
+            }
+            else
+            {
+                Triangle tri = new Triangle()
+                { v1 = leftSide[0], v2 = leftSide[3], v3 = leftSide[2] };
+                tri.matchDirection(normal);
+                newTriangles1.Add(tri);
+                tri = new Triangle()
+                { v1 = leftSide[0], v2 = leftSide[2], v3 = leftSide[1] };
+                tri.matchDirection(normal);
+                newTriangles1.Add(tri);
+            }
+        }
+
+        if (rightSide.Count == 3)
+        {
+            Triangle tri = new Triangle()
+            { v1 = rightSide[1], v2 = rightSide[0], v3 = rightSide[2] };
+        }
+        else
+        {
+            if (Vector3.Dot((rightSide[0] - rightSide[1]), rightSide[2] - rightSide[3]) >= 0)
+            {
+                Triangle tri = new Triangle()
+                { v1 = rightSide[0], v2 = rightSide[2], v3 = rightSide[3] };
+                tri.matchDirection(normal);
+                newTriangles2.Add(tri);
+                tri = new Triangle()
+                { v1 = rightSide[0], v2 = rightSide[3], v3 = rightSide[1] };
+                tri.matchDirection(normal);
+                newTriangles2.Add(tri);
+            }
+            else
+            {
+                Triangle tri = new Triangle()
+                { v1 = rightSide[0], v2 = rightSide[3], v3 = rightSide[2] };
+                tri.matchDirection(normal);
+                newTriangles2.Add(tri);
+                tri = new Triangle()
+                { v1 = rightSide[0], v2 = rightSide[2], v3 = rightSide[1] };
+                tri.matchDirection(normal);
+                newTriangles2.Add(tri);
+            }
+        }
+
+    }
+
+    void MakeObject(Plane plane, List<Vector3> intersections, Collider original)
+    {
         if (intersections.Count > 1)
         {
-            // Sets center
-            Vector3 center = Vector3.zero;
-            foreach (Vector3 vec in intersections)
+            Vector3 centre = Vector3.zero;
+            foreach (Vector3 vector in intersections)
             {
-                center += vec;
+                centre += vector;
             }
-            center /= intersections.Count;
+            centre /= intersections.Count;
+
             for (int i = 0; i < intersections.Count; i++)
             {
-                Triangle tri = new Triangle() { v1 = intersections[i], v2 = center, v3 = i + 1 == intersections.Count ? intersections[i] : intersections[i + 1] };
-                tri.matchDirection(-pl.normal);
-                newTris1.Add(tri);
-            }
-            for (int i = 0; i < intersections.Count; i++)
-            {
-                Triangle tri = new Triangle() { v1 = intersections[i], v2 = center, v3 = i + 1 == intersections.Count ? intersections[i] : intersections[i + 1] };
-                tri.matchDirection(pl.normal);
-                newTris2.Add(tri);
+                Triangle tri = new Triangle()
+                { v1 = intersections[i], v2 = centre, v3 = i + 1 == intersections.Count ? intersections[i] : intersections[i + 1] };
+                tri.matchDirection(-plane.normal);
+                newTriangles1.Add(tri);
+
+                /// potential issue
+
+                Triangle tri2 = new Triangle()
+                { v1 = intersections[i], v2 = centre, v3 = i + 1 == intersections.Count ? intersections[i] : intersections[i + 1] };
+                tri2.matchDirection(plane.normal);
+                newTriangles2.Add(tri2);
             }
         }
 
         if (intersections.Count > 0)
         {
-            // Creates new meshes
-            Material mat = other.gameObject.GetComponent<MeshRenderer>().material;
-            Destroy(other.gameObject);
+            Material material = original.gameObject.GetComponent<MeshRenderer>().material;
 
-            Mesh mesh1 = new Mesh();
-            Mesh mesh2 = new Mesh();
+            Mesh leftMesh = new Mesh();
+            Mesh rightMesh = new Mesh();
 
-            List<Vector3> tris = new List<Vector3>();
+            List<Vector3> newTriangles = new List<Vector3>();
             List<int> indices = new List<int>();
 
-            int index = 0;
-            foreach (Triangle thing in newTris1)
-            {
-                tris.Add(thing.v1);
-                tris.Add(thing.v2);
-                tris.Add(thing.v3);
-                indices.Add(index++);
-                indices.Add(index++);
-                indices.Add(index++);
-            }
-            mesh1.vertices = tris.ToArray();
-            mesh1.triangles = indices.ToArray();
-
-            index = 0;
-            tris.Clear();
+            /// potential issue
+            AddVerticies(leftMesh, newTriangles, indices, newTriangles1);
+            newTriangles.Clear();
             indices.Clear();
-            foreach (Triangle thing in newTris2)
-            {
-                tris.Add(thing.v1);
-                tris.Add(thing.v2);
-                tris.Add(thing.v3);
-                indices.Add(index++);
-                indices.Add(index++);
-                indices.Add(index++);
-            }
-            mesh2.vertices = tris.ToArray();
-            mesh2.triangles = indices.ToArray();
+            AddVerticies(rightMesh, newTriangles, indices, newTriangles2);
 
-            mesh1.RecalculateNormals();
-            mesh1.RecalculateBounds();
-            mesh2.RecalculateNormals();
-            mesh2.RecalculateBounds();
+            leftMesh.RecalculateBounds();
+            leftMesh.RecalculateNormals();
 
-            // Create new objects
+            rightMesh.RecalculateBounds();
+            rightMesh.RecalculateNormals();
 
-            GameObject go1 = new GameObject();
-            GameObject go2 = new GameObject();
+            GameObject leftGameObject = new GameObject();
+            GameObject rightGameObject = new GameObject();
 
-            MeshFilter mf1 = go1.AddComponent<MeshFilter>();
-            mf1.mesh = mesh1;
-            MeshRenderer mr1 = go1.AddComponent<MeshRenderer>();
-            mr1.material = mat;
-            MeshCollider mc1 = go1.AddComponent<MeshCollider>();
-            //if (mf1.mesh.vertexCount <= 255) {
-            mc1.convex = true;
-            go1.AddComponent<Rigidbody>();
-            //}
-            mc1.sharedMesh = mesh1;
-            go1.tag = "Slicable";
+            AddComponents(leftGameObject, material, leftMesh);
+            AddComponents(rightGameObject, material, rightMesh);
 
-            MeshFilter mf2 = go2.AddComponent<MeshFilter>();
-            mf2.mesh = mesh2;
-            MeshRenderer mr2 = go2.AddComponent<MeshRenderer>();
-            mr2.material = mat;
-            MeshCollider mc2 = go2.AddComponent<MeshCollider>();
-            //if (mf2.mesh.vertexCount <= 255) {
-            mc2.convex = true;
-            go2.AddComponent<Rigidbody>();
-            //}
-            mc2.sharedMesh = mesh2;
-            go2.tag = "Slicable";
+            GameController.speedChange = GameController.speedChange + 0.25f;
+            Instantiate(original);
+            ObjectLauncher.newZ = Random.RandomRange(-24, 24);
+
+            GameObject arrow = GameObject.FindGameObjectWithTag("Arrow");
+  
+
+            arrow.GetComponent<SliceDirection>().transform.rotation = new Quaternion(arrow.transform.rotation.x, 90, arrow.GetComponent<SliceDirection>().rotations[Random.RandomRange(0, arrow.GetComponent<SliceDirection>().rotations.Length)], arrow.transform.rotation.w);
+            leftGameObject.GetComponent<Rigidbody>().AddForceAtPosition(leftGameObject.transform.position.normalized * 100f, leftGameObject.transform.position);
+            rightGameObject.GetComponent<Rigidbody>().AddForceAtPosition(rightGameObject.transform.position.normalized * 100f, rightGameObject.transform.position);
+            Destroy(original.gameObject);
+            Debug.Log("i got here :)");
+        }
+    }
+    void AddComponents(GameObject gameObject, Material originalMaterial, Mesh mesh)
+    {
+        MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
+        meshFilter.mesh = mesh;
+
+        MeshRenderer meshRenderer = gameObject.AddComponent<MeshRenderer>();
+        meshRenderer.material = originalMaterial;
+
+        MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
+        meshCollider.convex = true;
+        meshCollider.sharedMesh = mesh;
+
+        gameObject.AddComponent<Rigidbody>();
+    }
+    void AddVerticies(Mesh mesh, List<Vector3> triangles, List<int> indicies, List<Triangle> triangleList)
+    {
+        int index = 0;
+        foreach (Triangle t in triangleList)
+        {
+            triangles.Add(t.v1);
+            triangles.Add(t.v2);
+            triangles.Add(t.v3);
+            indicies.Add(index++);
+            indicies.Add(index++);
+            indicies.Add(index++);
+        }
+        Debug.Log(triangles.Count);
+        mesh.vertices = triangles.ToArray();
+        mesh.triangles = indicies.ToArray();
+
+        triangles.Clear();
+        indicies.Clear();
+    }
+
+    void TriangleIntersection(List<Vector3> points, List<Vector3> intersections, Vector3 intersection)
+    {
+        intersections.Add(intersection);
+        points.Add(intersection);
+    }
+
+
+    void Update()
+    {
+        if (timer > 0)
+        {
+            timer -= Time.deltaTime;
         }
     }
 

@@ -8,6 +8,8 @@ TagManager:
   - placeholder
   - Collidable
   - Splitable
+  - Slicable
+  - Arrow
   layers:
   - Default
   - TransparentFX
