@@ -14,43 +14,17 @@ public class ObjectSplit : MonoBehaviour
     public Vector3 pointA;
     public Vector3 pointB;
 
-    private float timer = 1;
+    private MeshData meshData;
 
     Vector3 normal;
-    List<Triangle> newTriangles1;
-    List<Triangle> newTriangles2;
-
-    struct Triangle
-    {
-        public Vector3 v1;
-        public Vector3 v2;
-        public Vector3 v3;
-
-        public Vector3 getNormal()
-        {
-            return Vector3.Cross(v1 - v2, v1 - v3).normalized;
-        }
-
-        // Conver direction to point in the direction of the tri
-        public void matchDirection(Vector3 dir)
-        {
-            if (Vector3.Dot(getNormal(), dir) > 0)
-            {
-                return;
-            }
-            else
-            {
-                Vector3 vec = v1;
-                v1 = v3;
-                v3 = vec;
-            }
-        }
-    }
+    List<MeshData.Triangle> newTriangles1;
+    List<MeshData.Triangle> newTriangles2;
 
     public void SliceObject(Collider other)
     {
         Collider coll = GetComponent<Collider>();
-
+        
+        // setting plane position based off collider
         Vector3 vec1 = coll.bounds.center;
         vec1 += transform.up * coll.bounds.extents.y;
         Vector3 vec2 = coll.bounds.center;
@@ -60,35 +34,27 @@ public class ObjectSplit : MonoBehaviour
         vec3 += transform.up * -coll.bounds.extents.y;
         vec3 += transform.right * coll.bounds.extents.x;
 
-/*
-        Vector3 transformedNormal = ((Vector3)(other.gameObject.transform.localToWorldMatrix.transpose * normal)).normalized;
-
-        Vector3 transformedStartingPoint = other.gameObject.transform.InverseTransformPoint(tipEntryPoint);
-*/
+        // creates plane based off where collision happens
         Plane plane = new Plane(vec1, vec2, vec3);
 
-        /*plane.SetNormalAndPosition(transformedNormal, transformedStartingPoint);
+        meshData = new MeshData();
 
-        if (transformedNormal.x < 0 || transformedNormal.y < 0)
-        {
-            plane = plane.flipped;
-        }
-*/
-        int[] triangles = other.gameObject.GetComponent<MeshFilter>().mesh.triangles;
-        Vector3[] verticies = other.gameObject.GetComponent<MeshFilter>().mesh.vertices;
+        meshData.triangles = other.gameObject.GetComponent<MeshFilter>().mesh.triangles;
+        meshData.verticies = other.gameObject.GetComponent<MeshFilter>().mesh.vertices;
 
         List<Vector3> intersections = new List<Vector3>();
-        newTriangles1 = new List<Triangle>();
-        newTriangles2 = new List<Triangle>();
+        newTriangles1 = new List<MeshData.Triangle>();
+        newTriangles2 = new List<MeshData.Triangle>();
 
-        CheckTriangles(other, plane, triangles, verticies, intersections, newTriangles1, newTriangles2);
+        CheckTriangles(other, plane, meshData.triangles, meshData.verticies, intersections, newTriangles1, newTriangles2);
     }
 
 
 
 
-    void CheckTriangles(Collider collisionObject, Plane plane, int[] tris, Vector3[] verts, List<Vector3> intersections, List<Triangle> newTris1, List<Triangle> newTris2)
+    void CheckTriangles(Collider collisionObject, Plane plane, int[] tris, Vector3[] verts, List<Vector3> intersections, List<MeshData.Triangle> newTris1, List<MeshData.Triangle> newTris2)
     {
+
         for (int i = 0; i < tris.Length; i += 3)
         {
             List<Vector3> points = new List<Vector3>();
@@ -134,11 +100,11 @@ public class ObjectSplit : MonoBehaviour
             {
                 if (plane.GetSide(point1))
                 {
-                    newTriangles1.Add(new Triangle() { v1 = point1, v2 = point2, v3 = point3 });
+                    newTriangles1.Add(new MeshData.Triangle() { v1 = point1, v2 = point2, v3 = point3 });
                 }
                 else
                 {
-                    newTriangles2.Add(new Triangle() { v1 = point1, v2 = point2, v3 = point3 });
+                    newTriangles2.Add(new MeshData.Triangle() { v1 = point1, v2 = point2, v3 = point3 });
                 }
             }
         }
@@ -148,100 +114,75 @@ public class ObjectSplit : MonoBehaviour
 
     void MakeNewTriangles(Plane plane, List<Vector3> points, Vector3 point1, Vector3 point2, Vector3 point3)
     {
-        List<Vector3> leftSide = new List<Vector3>();
-        List<Vector3> rightSide = new List<Vector3>();
+        List<Vector3> leftSidePoints = new List<Vector3>();
+        List<Vector3> rightSidePoints = new List<Vector3>();
 
-        leftSide.AddRange(points);
-        rightSide.AddRange(points);
+        leftSidePoints.AddRange(points);
+        rightSidePoints.AddRange(points);
 
         if (plane.GetSide(point1))
         {
-            leftSide.Add(point1);
+            leftSidePoints.Add(point1);
         }
         else
         {
-            rightSide.Add(point1);
+            rightSidePoints.Add(point1);
         }
 
         if (plane.GetSide(point2))
         {
-            leftSide.Add(point2);
+            leftSidePoints.Add(point2);
         }
         else
         {
-            rightSide.Add(point2);
+            rightSidePoints.Add(point2);
         }
 
         if (plane.GetSide(point3))
         {
-            leftSide.Add(point3);
+            leftSidePoints.Add(point3);
         }
         else
         {
-            rightSide.Add(point3);
+            rightSidePoints.Add(point3);
         }
 
-        if (leftSide.Count == 3)
+        if (leftSidePoints.Count == 3)
         {
-            Triangle tri = new Triangle()
-            { v1 = leftSide[1], v2 = leftSide[0], v3 = leftSide[2] };
-            tri.matchDirection(normal);
-            newTriangles1.Add(tri);
+            meshData.MeshTriangle(normal, leftSidePoints[1], leftSidePoints[0], leftSidePoints[2], newTriangles1);
         }
         else
         {
-            if (Vector3.Dot((leftSide[0] - leftSide[1]), leftSide[2] - leftSide[3]) >= 0)
+            if (Vector3.Dot((leftSidePoints[0] - leftSidePoints[1]), leftSidePoints[2] - leftSidePoints[3]) >= 0)
             {
-                Triangle tri = new Triangle()
-                { v1 = leftSide[0], v2 = leftSide[2], v3 = leftSide[3] };
-                tri.matchDirection(normal);
-                newTriangles1.Add(tri);
-                tri = new Triangle()
-                { v1 = leftSide[0], v2 = leftSide[3], v3 = leftSide[1] };
-                tri.matchDirection(normal);
-                newTriangles1.Add(tri);
+                meshData.MeshTriangle(normal, leftSidePoints[0], leftSidePoints[2], leftSidePoints[3], newTriangles1);
+                meshData.MeshTriangle(normal, leftSidePoints[0], leftSidePoints[3], leftSidePoints[1], newTriangles1);
             }
             else
             {
-                Triangle tri = new Triangle()
-                { v1 = leftSide[0], v2 = leftSide[3], v3 = leftSide[2] };
-                tri.matchDirection(normal);
-                newTriangles1.Add(tri);
-                tri = new Triangle()
-                { v1 = leftSide[0], v2 = leftSide[2], v3 = leftSide[1] };
-                tri.matchDirection(normal);
-                newTriangles1.Add(tri);
+                meshData.MeshTriangle(normal, leftSidePoints[0], leftSidePoints[3], leftSidePoints[2], newTriangles1);
+                meshData.MeshTriangle(normal, leftSidePoints[0], leftSidePoints[2], leftSidePoints[1], newTriangles1);
             }
         }
-
-        if (rightSide.Count == 3)
+  
+        if (rightSidePoints.Count == 3)
         {
-            Triangle tri = new Triangle()
-            { v1 = rightSide[1], v2 = rightSide[0], v3 = rightSide[2] };
+            /*MeshData.Triangle tri = new MeshData.Triangle()
+            { v1 = rightSide[1], v2 = rightSide[0], v3 = rightSide[2] };*/
+            meshData.MeshTriangle(normal, rightSidePoints[1], rightSidePoints[0], rightSidePoints[2], newTriangles2);
+
         }
         else
         {
-            if (Vector3.Dot((rightSide[0] - rightSide[1]), rightSide[2] - rightSide[3]) >= 0)
+            if (Vector3.Dot((rightSidePoints[0] - rightSidePoints[1]), rightSidePoints[2] - rightSidePoints[3]) >= 0)
             {
-                Triangle tri = new Triangle()
-                { v1 = rightSide[0], v2 = rightSide[2], v3 = rightSide[3] };
-                tri.matchDirection(normal);
-                newTriangles2.Add(tri);
-                tri = new Triangle()
-                { v1 = rightSide[0], v2 = rightSide[3], v3 = rightSide[1] };
-                tri.matchDirection(normal);
-                newTriangles2.Add(tri);
+                meshData.MeshTriangle(normal, rightSidePoints[0], rightSidePoints[2], rightSidePoints[3], newTriangles2);
+                meshData.MeshTriangle(normal, rightSidePoints[0], rightSidePoints[3], rightSidePoints[1], newTriangles2);
             }
             else
             {
-                Triangle tri = new Triangle()
-                { v1 = rightSide[0], v2 = rightSide[3], v3 = rightSide[2] };
-                tri.matchDirection(normal);
-                newTriangles2.Add(tri);
-                tri = new Triangle()
-                { v1 = rightSide[0], v2 = rightSide[2], v3 = rightSide[1] };
-                tri.matchDirection(normal);
-                newTriangles2.Add(tri);
+                meshData.MeshTriangle(normal, rightSidePoints[0], rightSidePoints[3], rightSidePoints[2], newTriangles2);
+                meshData.MeshTriangle(normal, rightSidePoints[0], rightSidePoints[2], rightSidePoints[1], newTriangles2);
             }
         }
 
@@ -260,17 +201,8 @@ public class ObjectSplit : MonoBehaviour
 
             for (int i = 0; i < intersections.Count; i++)
             {
-                Triangle tri = new Triangle()
-                { v1 = intersections[i], v2 = centre, v3 = i + 1 == intersections.Count ? intersections[i] : intersections[i + 1] };
-                tri.matchDirection(-plane.normal);
-                newTriangles1.Add(tri);
-
-                /// potential issue
-
-                Triangle tri2 = new Triangle()
-                { v1 = intersections[i], v2 = centre, v3 = i + 1 == intersections.Count ? intersections[i] : intersections[i + 1] };
-                tri2.matchDirection(plane.normal);
-                newTriangles2.Add(tri2);
+                meshData.MeshTriangle(-plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], newTriangles1);
+                meshData.MeshTriangle(plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], newTriangles1);
             }
         }
 
@@ -313,7 +245,6 @@ public class ObjectSplit : MonoBehaviour
             leftGameObject.GetComponent<Rigidbody>().AddForceAtPosition(leftGameObject.transform.position.normalized * 100f, leftGameObject.transform.position);
             rightGameObject.GetComponent<Rigidbody>().AddForceAtPosition(rightGameObject.transform.position.normalized * 100f, rightGameObject.transform.position);
             Destroy(original.gameObject);
-            Debug.Log("i got here :)");
         }
     }
     void AddComponents(GameObject gameObject, Material originalMaterial, Mesh mesh)
@@ -330,10 +261,10 @@ public class ObjectSplit : MonoBehaviour
 
         gameObject.AddComponent<Rigidbody>();
     }
-    void AddVerticies(Mesh mesh, List<Vector3> triangles, List<int> indicies, List<Triangle> triangleList)
+    void AddVerticies(Mesh mesh, List<Vector3> triangles, List<int> indicies, List<MeshData.Triangle> triangleList)
     {
         int index = 0;
-        foreach (Triangle t in triangleList)
+        foreach (MeshData.Triangle t in triangleList)
         {
             triangles.Add(t.v1);
             triangles.Add(t.v2);
@@ -354,55 +285,5 @@ public class ObjectSplit : MonoBehaviour
     {
         intersections.Add(intersection);
         points.Add(intersection);
-    }
-
-
-    void Update()
-    {
-        if (timer > 0)
-        {
-            timer -= Time.deltaTime;
-        }
-    }
-
-    void FixedUpdate()
-    {
-        transform.position = new Vector3(transform.position.x - 0.1f, transform.position.y, transform.position.z);
-    }
-
-
-
-    public static void DrawPlane(Vector3 a, Vector3 b, Vector3 c, float size,
-        Color color, float duration = 0f, bool depthTest = true)
-    {
-
-        var plane = new Plane(a, b, c);
-        var centroid = (a + b + c) / 3;
-
-        DrawPlaneAtPoint(plane, centroid, size, color, duration, depthTest);
-    }
-    public static void DrawPlaneNearPoint(Plane plane, Vector3 point, float size, Color color, float duration = 0f, bool depthTest = true)
-    {
-        var closest = plane.ClosestPointOnPlane(point);
-        Color side = plane.GetSide(point) ? Color.cyan : Color.red;
-        Debug.DrawLine(point, closest, side, duration, depthTest);
-
-        DrawPlaneAtPoint(plane, closest, size, color, duration, depthTest);
-    }
-
-    // Non-public method to do the heavy lifting of drawing the grid of a given plane segment.
-    static void DrawPlaneAtPoint(Plane plane, Vector3 center, float size, Color color, float duration, bool depthTest)
-    {
-        var basis = Quaternion.LookRotation(plane.normal);
-        var scale = Vector3.one * size / 10f;
-
-        var right = Vector3.Scale(basis * Vector3.right, scale);
-        var up = Vector3.Scale(basis * Vector3.up, scale);
-
-        for (int i = -5; i <= 5; i++)
-        {
-            Debug.DrawLine(center + right * i - up * 5, center + right * i + up * 5, color, duration, depthTest);
-            Debug.DrawLine(center + up * i - right * 5, center + up * i + right * 5, color, duration, depthTest);
-        }
     }
 }
