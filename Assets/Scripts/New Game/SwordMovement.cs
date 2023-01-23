@@ -26,6 +26,6 @@ public class SwordMovement : MonoBehaviour
 
         oppositeAngle = (transform.rotation.x - 180f);
 
-        Debug.Log(transform.rotation.x * 180);
+        //Debug.Log(transform.rotation.x * 180);
     }
 }

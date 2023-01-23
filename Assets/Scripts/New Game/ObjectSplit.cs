@@ -4,16 +4,6 @@ using UnityEngine;
 
 public class ObjectSplit : MonoBehaviour
 {
-    public Vector3 hiltEntryPoint;
-    public Vector3 tipEntryPoint;
-    public Vector3 tipExitPoint;
-
-    public Vector3 side1;
-    public Vector3 side2;
-
-    public Vector3 pointA;
-    public Vector3 pointB;
-
     private MeshData meshData;
 
     Vector3 normal;
@@ -22,20 +12,7 @@ public class ObjectSplit : MonoBehaviour
 
     public void SliceObject(Collider other)
     {
-        Collider coll = GetComponent<Collider>();
-        
-        // setting plane position based off collider
-        Vector3 vec1 = coll.bounds.center;
-        vec1 += transform.up * coll.bounds.extents.y;
-        Vector3 vec2 = coll.bounds.center;
-        vec2 += transform.up * coll.bounds.extents.y;
-        vec2 += transform.right * coll.bounds.extents.x;
-        Vector3 vec3 = coll.bounds.center;
-        vec3 += transform.up * -coll.bounds.extents.y;
-        vec3 += transform.right * coll.bounds.extents.x;
-
-        // creates plane based off where collision happens
-        Plane plane = new Plane(vec1, vec2, vec3);
+        Plane plane = CreatePlane();
 
         meshData = new MeshData();
 
@@ -49,9 +26,32 @@ public class ObjectSplit : MonoBehaviour
         CheckTriangles(other, plane, meshData.triangles, meshData.verticies, intersections, newTriangles1, newTriangles2);
     }
 
+    private Plane CreatePlane()
+    {
+        Collider collider = GetComponent<Collider>();
+        Vector3 centreBounds = collider.bounds.center;
+        Vector3 extentsBounds = collider.bounds.extents;
+
+        Vector3 vec1 = centreBounds + transform.up * extentsBounds.y;
+        Vector3 vec2 = centreBounds + transform.up * extentsBounds.y + transform.right * centreBounds.x;
+        Vector3 vec3 = centreBounds + transform.up * -extentsBounds.y + transform.right * extentsBounds.x;
+
+        return new Plane(vec1, vec2, vec3);
+    }
+
+    private bool CheckIntersection(List<Vector3> points, Plane plane, Vector3 point1, Vector3 point2)
+    {
+        Vector3 direction = point2 - point1;
+        float length;
+        Vector3 intersection;
 
 
-
+        if (plane.Raycast(new Ray(point1, direction), out length) && length <= direction.magnitude)
+        {
+            return true;
+        }
+        return false;
+    }
     void CheckTriangles(Collider collisionObject, Plane plane, int[] tris, Vector3[] verts, List<Vector3> intersections, List<MeshData.Triangle> newTris1, List<MeshData.Triangle> newTris2)
     {
 
@@ -202,7 +202,7 @@ public class ObjectSplit : MonoBehaviour
             for (int i = 0; i < intersections.Count; i++)
             {
                 meshData.MeshTriangle(-plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], newTriangles1);
-                meshData.MeshTriangle(plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], newTriangles1);
+                meshData.MeshTriangle(plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], newTriangles2);
             }
         }
 
@@ -217,16 +217,9 @@ public class ObjectSplit : MonoBehaviour
             List<int> indices = new List<int>();
 
             /// potential issue
+            Debug.Log(newTriangles1.Count);
             AddVerticies(leftMesh, newTriangles, indices, newTriangles1);
-            newTriangles.Clear();
-            indices.Clear();
             AddVerticies(rightMesh, newTriangles, indices, newTriangles2);
-
-            leftMesh.RecalculateBounds();
-            leftMesh.RecalculateNormals();
-
-            rightMesh.RecalculateBounds();
-            rightMesh.RecalculateNormals();
 
             GameObject leftGameObject = new GameObject();
             GameObject rightGameObject = new GameObject();
@@ -273,16 +266,19 @@ public class ObjectSplit : MonoBehaviour
             indicies.Add(index++);
             indicies.Add(index++);
         }
-        Debug.Log(triangles.Count);
         mesh.vertices = triangles.ToArray();
         mesh.triangles = indicies.ToArray();
 
         triangles.Clear();
         indicies.Clear();
+
+        mesh.RecalculateBounds();
+        mesh.RecalculateNormals();
     }
 
     void TriangleIntersection(List<Vector3> points, List<Vector3> intersections, Vector3 intersection)
     {
+
         intersections.Add(intersection);
         points.Add(intersection);
     }
