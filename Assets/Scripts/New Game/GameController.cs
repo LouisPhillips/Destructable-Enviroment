@@ -5,6 +5,6 @@ using UnityEngine;
 public class GameController : MonoBehaviour
 {
     int score = 0;
-    public static float speedChange = 1;
+    public static float speedChange = 1f;
 
 }

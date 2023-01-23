@@ -6,7 +6,6 @@ public class ObjectSplit : MonoBehaviour
 {
     private MeshData meshData;
 
-    Vector3 normal;
     List<MeshData.Triangle> newTriangles1;
     List<MeshData.Triangle> newTriangles2;
 
@@ -65,6 +64,7 @@ public class ObjectSplit : MonoBehaviour
             Vector3 point1 = collisionObject.transform.TransformPoint(verts[vert1]);
             Vector3 point2 = collisionObject.transform.TransformPoint(verts[vert2]);
             Vector3 point3 = collisionObject.transform.TransformPoint(verts[vert3]);
+            Vector3 normal = Vector3.Cross(point1 - point2, point1 - point3);
 
             Vector3 direction = point2 - point1;
             float length;
@@ -94,7 +94,7 @@ public class ObjectSplit : MonoBehaviour
             if (points.Count > 0)
             {
                 // Make new triangles based off entry points
-                MakeNewTriangles(plane, points, point1, point2, point3);
+                MakeNewTriangles(plane, points, point1, point2, point3, normal);
             }
             else
             {
@@ -112,7 +112,7 @@ public class ObjectSplit : MonoBehaviour
         MakeObject(plane, intersections, collisionObject);
     }
 
-    void MakeNewTriangles(Plane plane, List<Vector3> points, Vector3 point1, Vector3 point2, Vector3 point3)
+    void MakeNewTriangles(Plane plane, List<Vector3> points, Vector3 point1, Vector3 point2, Vector3 point3, Vector3 normal)
     {
         List<Vector3> leftSidePoints = new List<Vector3>();
         List<Vector3> rightSidePoints = new List<Vector3>();
@@ -232,11 +232,12 @@ public class ObjectSplit : MonoBehaviour
             ObjectLauncher.newZ = Random.RandomRange(-24, 24);
 
             GameObject arrow = GameObject.FindGameObjectWithTag("Arrow");
-  
+            leftGameObject.name = "leftGameObject";
+            rightGameObject.name = "rightGameObject";
 
             arrow.GetComponent<SliceDirection>().transform.rotation = new Quaternion(arrow.transform.rotation.x, 90, arrow.GetComponent<SliceDirection>().rotations[Random.RandomRange(0, arrow.GetComponent<SliceDirection>().rotations.Length)], arrow.transform.rotation.w);
-            leftGameObject.GetComponent<Rigidbody>().AddForceAtPosition(leftGameObject.transform.position.normalized * 100f, leftGameObject.transform.position);
-            rightGameObject.GetComponent<Rigidbody>().AddForceAtPosition(rightGameObject.transform.position.normalized * 100f, rightGameObject.transform.position);
+            leftGameObject.GetComponent<Rigidbody>().AddForceAtPosition(transform.position.normalized * 100f, transform.position);
+            rightGameObject.GetComponent<Rigidbody>().AddForceAtPosition(transform.position.normalized * 100f, transform.position);
             Destroy(original.gameObject);
         }
     }
