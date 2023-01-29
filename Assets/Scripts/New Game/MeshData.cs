@@ -39,6 +39,7 @@ public class MeshData : MonoBehaviour
 
     public int[] triangles;
     public Vector3[] verticies;
+    public Vector2[] uvs;
 
   
 

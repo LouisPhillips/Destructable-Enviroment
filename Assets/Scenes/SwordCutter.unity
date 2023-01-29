@@ -363,6 +363,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 503293010435218594, guid: f07b264fcb4f5d74fbfe13c525813840, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.868
+      objectReference: {fileID: 0}
     - target: {fileID: 778771215775127917, guid: f07b264fcb4f5d74fbfe13c525813840, type: 3}
       propertyPath: m_LocalPosition.y
       value: 3.71
@@ -436,7 +440,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ddc852967b0207943a27bcf94f7d6d1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 1
+  speed: 100
   startPos: {fileID: 1468963886}
   getNewZ: 0
 --- !u!54 &362597248
@@ -525,6 +529,19 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 0.34, y: 3.65, z: 0.09}
   m_Center: {x: 0, y: 1.95, z: 0}
+--- !u!114 &426917418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 426917413}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa1544f3e53b2bf43b1b78d57ac47ded, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  insideMaterial: {fileID: 2100000, guid: 7d9dd722c6c841d46b9619e1fbc2a9a3, type: 2}
 --- !u!1 &795519600
 GameObject:
   m_ObjectHideFlags: 0
@@ -985,6 +1002,7 @@ GameObject:
   - component: {fileID: 362597248}
   - component: {fileID: 362597249}
   - component: {fileID: 362597247}
+  - component: {fileID: 919132149003087854}
   m_Layer: 0
   m_Name: banana
   m_TagString: Slicable
@@ -992,6 +1010,19 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &919132149003087854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132149003087853}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa1544f3e53b2bf43b1b78d57ac47ded, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  insideMaterial: {fileID: 2100000, guid: 7d9dd722c6c841d46b9619e1fbc2a9a3, type: 2}
 --- !u!23 &1711813856064949816
 MeshRenderer:
   m_ObjectHideFlags: 0
