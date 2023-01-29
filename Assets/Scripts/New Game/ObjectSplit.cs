@@ -41,71 +41,62 @@ public class ObjectSplit : MonoBehaviour
 
     void GetVertices(Collider collisionObject, Plane plane, Vector2[] uvs, int[] tris, Vector3[] verts, List<Vector3> intersections, List<MeshData.Triangle> newTris1, List<MeshData.Triangle> newTris2)
     {
-
         for (int i = 0; i < tris.Length; i += 3)
         {
             List<Vector3> points = new List<Vector3>();
-            Vector3[] collisionPoints = new Vector3[2];
-
-            int[] verticies = new int[2];
-            verticies[0] = tris[i];
-            verticies[1] = tris[i + 1];
-            verticies[2] = tris[i + 2];
+            int[] verticies = new int[] { tris[i], tris[i + 1], tris[i + 2] };
+            Vector3[] collisionPoints = new Vector3[] { collisionObject.transform.TransformPoint(verts[verticies[0]]),
+            collisionObject.transform.TransformPoint(verts[verticies[1]]),
+            collisionObject.transform.TransformPoint(verts[verticies[2]])};
 
             //int vert1 = tris[i];
             //int vert2 = tris[i + 1];
             //int vert3 = tris[i + 2];
 
-            for (int j = 0; j < points.Count; j++)
-            {
-                collisionPoints[j] = collisionObject.transform.TransformPoint(verts[verticies[j]]);
-            }
-
-
             //Vector3 point1 = collisionObject.transform.TransformPoint(verts[vert1]);
             //Vector3 point2 = collisionObject.transform.TransformPoint(verts[vert2]);
             //Vector3 point3 = collisionObject.transform.TransformPoint(verts[vert3]);
 
-            Vector3 normal = Vector3.Cross(point1 - point2, point1 - point3);
+            Vector3 normal = Vector3.Cross(collisionPoints[0] - collisionPoints[1], collisionPoints[0] - collisionPoints[2]);
 
-            Vector3 direction = point2 - point1;
+            Vector3 direction = collisionPoints[1] - collisionPoints[0];
             float length;
 
             Vector3 intersection;
-            if (plane.Raycast(new Ray(point1, direction), out length) && length <= direction.magnitude)
+            if (plane.Raycast(new Ray(collisionPoints[0], direction), out length) && length <= direction.magnitude)
             {
-                intersection = point1 + length * direction.normalized;
+                intersection = collisionPoints[0] + length * direction.normalized;
                 TriangleIntersection(points, intersections, intersection);
             }
-            direction = point3 - point2;
+            direction = collisionPoints[2] - collisionPoints[1];
 
-            if (plane.Raycast(new Ray(point2, direction), out length) && length <= direction.magnitude)
+            if (plane.Raycast(new Ray(collisionPoints[1], direction), out length) && length <= direction.magnitude)
             {
-                intersection = point2 + length * direction.normalized;
+                intersection = collisionPoints[1] + length * direction.normalized;
                 TriangleIntersection(points, intersections, intersection);
             }
-            direction = point3 - point1;
+            direction = collisionPoints[2] - collisionPoints[0];
 
-            if (plane.Raycast(new Ray(point1, direction), out length) && length <= direction.magnitude)
+            if (plane.Raycast(new Ray(collisionPoints[0], direction), out length) && length <= direction.magnitude)
             {
-                intersection = point1 + length * direction.normalized;
+                intersection = collisionPoints[0] + length * direction.normalized;
                 TriangleIntersection(points, intersections, intersection);
             }
 
             if (points.Count > 0)
             {
                 // Make new triangles based off entry points
-                MakeNewTriangles(plane, points, point1, point2, point3, normal);
+                MakeNewTriangles(plane, points, collisionPoints, normal);
             }
             else
             {
-                if (plane.GetSide(point1))
+                if (plane.GetSide(collisionPoints[0]))
                 {
-                    leftTriangles.Add(new MeshData.Triangle() { v1 = point1, v2 = point2, v3 = point3 });
+                    leftTriangles.Add(new MeshData.Triangle() { v1 = collisionPoints[0], v2 = collisionPoints[1], v3 = collisionPoints[2] });
                 }
                 else
                 {
-                    rightTriangles.Add(new MeshData.Triangle() { v1 = point1, v2 = point2, v3 = point3 });
+                    rightTriangles.Add(new MeshData.Triangle() { v1 = collisionPoints[0], v2 = collisionPoints[1], v3 = collisionPoints[2] });
                 }
             }
         }
@@ -113,7 +104,7 @@ public class ObjectSplit : MonoBehaviour
         MakeObject(plane, intersections, collisionObject);
     }
 
-    void MakeNewTriangles(Plane plane, List<Vector3> points, Vector3 point1, Vector3 point2, Vector3 point3, Vector3 normal)
+    void MakeNewTriangles(Plane plane, List<Vector3> points, Vector3[] collisionPoints, Vector3 normal)
     {
         List<Vector3> leftSidePoints = new List<Vector3>();
         List<Vector3> rightSidePoints = new List<Vector3>();
@@ -121,31 +112,31 @@ public class ObjectSplit : MonoBehaviour
         leftSidePoints.AddRange(points);
         rightSidePoints.AddRange(points);
 
-        if (plane.GetSide(point1))
+        if (plane.GetSide(collisionPoints[0]))
         {
-            leftSidePoints.Add(point1);
+            leftSidePoints.Add(collisionPoints[0]);
         }
         else
         {
-            rightSidePoints.Add(point1);
+            rightSidePoints.Add(collisionPoints[0]);
         }
 
-        if (plane.GetSide(point2))
+        if (plane.GetSide(collisionPoints[1]))
         {
-            leftSidePoints.Add(point2);
+            leftSidePoints.Add(collisionPoints[1]);
         }
         else
         {
-            rightSidePoints.Add(point2);
+            rightSidePoints.Add(collisionPoints[2]);
         }
 
-        if (plane.GetSide(point3))
+        if (plane.GetSide(collisionPoints[2]))
         {
-            leftSidePoints.Add(point3);
+            leftSidePoints.Add(collisionPoints[2]);
         }
         else
         {
-            rightSidePoints.Add(point3);
+            rightSidePoints.Add(collisionPoints[2]);
         }
 
         if (leftSidePoints.Count == 3)
@@ -203,8 +194,8 @@ public class ObjectSplit : MonoBehaviour
             for (int i = 0; i < intersections.Count; i++)
             {
                 // makes inside triangles
-                meshData.MeshTriangle(-plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], leftInside);
-                meshData.MeshTriangle(plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], rightInside);
+                meshData.MeshTriangle(-plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], leftTriangles);
+                meshData.MeshTriangle(plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], rightTriangles);
 
                 // Add these triangles to seperate list
                 // Assign those meshes a different material
@@ -259,18 +250,18 @@ public class ObjectSplit : MonoBehaviour
         MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
 
         meshFilter.mesh = mesh;
-        meshFilter.mesh = insideMesh;
+        //meshFilter.mesh = insideMesh;
         //GetComponent<InsideMaterial>().insideMaterial;
 
         MeshRenderer meshRenderer = gameObject.AddComponent<MeshRenderer>();
         /*meshRenderer.materials[0] = originalMaterial;
         meshRenderer.materials[1] = insideMaterial;*/
         meshRenderer.material = originalMaterial;
-        meshRenderer.material = insideMaterial;
+        //meshRenderer.material = insideMaterial;
 
         MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
         meshCollider.convex = true;
-        meshCollider.sharedMesh = mesh;
+        //meshCollider.sharedMesh = mesh;
 
         gameObject.AddComponent<Despawn>();
 
