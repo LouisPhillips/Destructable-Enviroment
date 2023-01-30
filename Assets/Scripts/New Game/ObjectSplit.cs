@@ -31,16 +31,13 @@ public class ObjectSplit : MonoBehaviour
         Collider collider = GetComponent<Collider>();
         Vector3 centreBounds = collider.bounds.center;
         Vector3 extentsBounds = collider.bounds.extents;
-
-        Vector3 vec1 = centreBounds + transform.up * extentsBounds.y;
-        Vector3 vec2 = centreBounds + transform.up * extentsBounds.y + transform.right * centreBounds.x;
-        Vector3 vec3 = centreBounds + transform.up * -extentsBounds.y + transform.right * extentsBounds.x;
-
-        return new Plane(vec1, vec2, vec3);
+        Vector3[] vectors = new Vector3[] { centreBounds + transform.up * extentsBounds.y, centreBounds + transform.up * extentsBounds.y + transform.right * centreBounds.x, centreBounds + transform.up * -extentsBounds.y + transform.right * extentsBounds.x };
+        return new Plane(vectors[0], vectors[1], vectors[2]);
     }
 
     void GetVertices(Collider collisionObject, Plane plane, Vector2[] uvs, int[] tris, Vector3[] verts, List<Vector3> intersections, List<MeshData.Triangle> newTris1, List<MeshData.Triangle> newTris2)
     {
+
         for (int i = 0; i < tris.Length; i += 3)
         {
             List<Vector3> points = new List<Vector3>();
@@ -48,14 +45,6 @@ public class ObjectSplit : MonoBehaviour
             Vector3[] collisionPoints = new Vector3[] { collisionObject.transform.TransformPoint(verts[verticies[0]]),
             collisionObject.transform.TransformPoint(verts[verticies[1]]),
             collisionObject.transform.TransformPoint(verts[verticies[2]])};
-
-            //int vert1 = tris[i];
-            //int vert2 = tris[i + 1];
-            //int vert3 = tris[i + 2];
-
-            //Vector3 point1 = collisionObject.transform.TransformPoint(verts[vert1]);
-            //Vector3 point2 = collisionObject.transform.TransformPoint(verts[vert2]);
-            //Vector3 point3 = collisionObject.transform.TransformPoint(verts[vert3]);
 
             Vector3 normal = Vector3.Cross(collisionPoints[0] - collisionPoints[1], collisionPoints[0] - collisionPoints[2]);
 
@@ -127,7 +116,7 @@ public class ObjectSplit : MonoBehaviour
         }
         else
         {
-            rightSidePoints.Add(collisionPoints[2]);
+            rightSidePoints.Add(collisionPoints[1]);
         }
 
         if (plane.GetSide(collisionPoints[2]))
@@ -194,8 +183,8 @@ public class ObjectSplit : MonoBehaviour
             for (int i = 0; i < intersections.Count; i++)
             {
                 // makes inside triangles
-                meshData.MeshTriangle(-plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], leftTriangles);
-                meshData.MeshTriangle(plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], rightTriangles);
+                meshData.MeshTriangle(-plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], leftInside);
+                meshData.MeshTriangle(plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], rightInside);
 
                 // Add these triangles to seperate list
                 // Assign those meshes a different material
@@ -215,6 +204,7 @@ public class ObjectSplit : MonoBehaviour
             Mesh rightInsideMesh = new Mesh();
             Mesh leftInsideMesh = new Mesh();
 
+            
             List<Vector3> newTriangles = new List<Vector3>();
             List<int> indices = new List<int>();
             List<Vector2> uvs = new List<Vector2>();
@@ -228,8 +218,14 @@ public class ObjectSplit : MonoBehaviour
             GameObject leftGameObject = new GameObject();
             GameObject rightGameObject = new GameObject();
 
+            GameObject leftGameObjectIn = new GameObject();
+            GameObject rightGameObjectIn = new GameObject();
+
             AddComponents(leftGameObject, material, insideMat, leftMesh, leftInsideMesh);
             AddComponents(rightGameObject, material, insideMat, rightMesh, rightInsideMesh);
+
+            AddComponents(leftGameObjectIn, insideMat, insideMat, leftInsideMesh, leftInsideMesh);
+            AddComponents(rightGameObjectIn, insideMat, insideMat, rightInsideMesh, rightInsideMesh);
 
             GameController.speedChange = GameController.speedChange + 0.25f;
             Instantiate(original);
@@ -242,9 +238,19 @@ public class ObjectSplit : MonoBehaviour
             arrow.GetComponent<SliceDirection>().transform.rotation = new Quaternion(arrow.transform.rotation.x, 90, arrow.GetComponent<SliceDirection>().rotations[Random.RandomRange(0, arrow.GetComponent<SliceDirection>().rotations.Length)], arrow.transform.rotation.w);
             leftGameObject.GetComponent<Rigidbody>().AddForceAtPosition(transform.position.normalized * 100f, transform.position);
             rightGameObject.GetComponent<Rigidbody>().AddForceAtPosition(transform.position.normalized * 100f, transform.position);
+            leftGameObjectIn.GetComponent<Rigidbody>().AddForceAtPosition(transform.position.normalized * 100f, transform.position);
+            rightGameObjectIn.GetComponent<Rigidbody>().AddForceAtPosition(transform.position.normalized * 100f, transform.position);
+
+            leftGameObjectIn.AddComponent<PositionInside>();
+            rightGameObjectIn.AddComponent<PositionInside>();
+
+            leftGameObjectIn.transform.parent = leftGameObject.transform;
+            rightGameObjectIn.transform.parent = rightGameObject.transform;
+
             Destroy(original.gameObject);
         }
     }
+
     void AddComponents(GameObject gameObject, Material originalMaterial, Material insideMaterial, Mesh mesh, Mesh insideMesh)
     {
         MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
@@ -261,12 +267,13 @@ public class ObjectSplit : MonoBehaviour
 
         MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
         meshCollider.convex = true;
-        //meshCollider.sharedMesh = mesh;
+        meshCollider.sharedMesh = mesh;
 
         gameObject.AddComponent<Despawn>();
 
         gameObject.AddComponent<Rigidbody>();
     }
+
     void AddVerticies(Mesh mesh, List<Vector3> triangles, List<int> indicies, List<MeshData.Triangle> triangleList, List<Vector2> uvs)
     {
         int index = 0;
