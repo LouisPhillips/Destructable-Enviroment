@@ -35,6 +35,7 @@ public class ObjectSplit : MonoBehaviour
         return new Plane(vectors[0], vectors[1], vectors[2]);
     }
 
+
     void GetVertices(Collider collisionObject, Plane plane, Vector2[] uvs, int[] tris, Vector3[] verts, List<Vector3> intersections, List<MeshData.Triangle> newTris1, List<MeshData.Triangle> newTris2)
     {
 
@@ -79,6 +80,7 @@ public class ObjectSplit : MonoBehaviour
             }
             else
             {
+                // Triangles for the remaining sides
                 if (plane.GetSide(collisionPoints[0]))
                 {
                     leftTriangles.Add(new MeshData.Triangle() { v1 = collisionPoints[0], v2 = collisionPoints[1], v3 = collisionPoints[2] });
@@ -101,31 +103,16 @@ public class ObjectSplit : MonoBehaviour
         leftSidePoints.AddRange(points);
         rightSidePoints.AddRange(points);
 
-        if (plane.GetSide(collisionPoints[0]))
+        foreach (Vector3 point in collisionPoints)
         {
-            leftSidePoints.Add(collisionPoints[0]);
-        }
-        else
-        {
-            rightSidePoints.Add(collisionPoints[0]);
-        }
-
-        if (plane.GetSide(collisionPoints[1]))
-        {
-            leftSidePoints.Add(collisionPoints[1]);
-        }
-        else
-        {
-            rightSidePoints.Add(collisionPoints[1]);
-        }
-
-        if (plane.GetSide(collisionPoints[2]))
-        {
-            leftSidePoints.Add(collisionPoints[2]);
-        }
-        else
-        {
-            rightSidePoints.Add(collisionPoints[2]);
+            if (plane.GetSide(point))
+            {
+                leftSidePoints.Add(point);
+            }
+            else
+            {
+                rightSidePoints.Add(point);
+            }
         }
 
         if (leftSidePoints.Count == 3)
@@ -258,7 +245,7 @@ public class ObjectSplit : MonoBehaviour
 
         meshRenderer.materials = _materials;
 
-        
+
         //meshRenderer.material = insideMaterial;
 
         MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
