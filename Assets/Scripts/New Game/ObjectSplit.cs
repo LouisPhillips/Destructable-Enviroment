@@ -164,21 +164,20 @@ public class ObjectSplit : MonoBehaviour
             }
             centre /= intersections.Count;
 
+            Debug.Log("Current Triangles: " + leftTriangles.Count) ;
+            Debug.Log("Current Triangles: " + rightTriangles.Count) ;
             for (int i = 0; i < intersections.Count; i++)
             {
                 // makes inside triangles
                 meshData.MeshTriangle(-plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], leftInside);
                 meshData.MeshTriangle(plane.normal, intersections[i], centre, i + 1 == intersections.Count ? intersections[i] : intersections[i + 1], rightInside);
 
+                leftInside.RemoveRange(0, leftInside.Count / 2);
+                rightInside.RemoveRange(0, rightInside.Count / 2);
+
+                Debug.Log(leftInside.Count);
                 leftTriangles.AddRange(leftInside);
                 rightTriangles.AddRange(rightInside);
-
-                // add these back to the original list, then get the length of the inside list and set inside matieral to meshes which are greater than eg. leftTriangles.Length - leftInside.length eg. any above 500.
-
-                // Add these triangles to seperate list
-                // Assign those meshes a different material
-
-                // solutuions: inner material component which has its own seperate matieral
             }
         }
 
@@ -200,6 +199,9 @@ public class ObjectSplit : MonoBehaviour
             GameObject leftGameObject = new GameObject();
             GameObject rightGameObject = new GameObject();
 
+            leftGameObject.name = "leftGameObject";
+            rightGameObject.name = "rightGameObject";
+
             AddComponents(leftGameObject, material, insideMat, leftMesh, leftTriangles, leftInside);
             AddComponents(rightGameObject, material, insideMat, rightMesh, rightTriangles, rightInside);
 
@@ -207,11 +209,10 @@ public class ObjectSplit : MonoBehaviour
             Instantiate(original.gameObject);
             ObjectLauncher.newZ = Random.RandomRange(-24, 24);
 
-            GameObject arrow = GameObject.FindGameObjectWithTag("Arrow");
-            leftGameObject.name = "leftGameObject";
-            rightGameObject.name = "rightGameObject";
+            //GameObject arrow = GameObject.FindGameObjectWithTag("Arrow");
 
-            arrow.GetComponent<SliceDirection>().transform.rotation = new Quaternion(arrow.transform.rotation.x, 90, arrow.GetComponent<SliceDirection>().rotations[Random.RandomRange(0, arrow.GetComponent<SliceDirection>().rotations.Length)], arrow.transform.rotation.w);
+
+            //arrow.GetComponent<SliceDirection>().transform.rotation = new Quaternion(arrow.transform.rotation.x, 90, arrow.GetComponent<SliceDirection>().rotations[Random.RandomRange(0, arrow.GetComponent<SliceDirection>().rotations.Length)], arrow.transform.rotation.w);
             leftGameObject.GetComponent<Rigidbody>().AddForceAtPosition(transform.position.normalized * 100f, transform.position);
             rightGameObject.GetComponent<Rigidbody>().AddForceAtPosition(transform.position.normalized * 100f, transform.position);
 
@@ -232,54 +233,10 @@ public class ObjectSplit : MonoBehaviour
         _materials[0] = originalMaterial;
         _materials[1] = insideMaterial;
 
-
-        /*int[] outsideTriangles = mesh.triangles;
-        for (int i = 0; i < outsideTriangles.Length; i++)
-        {
-            outsideTriangles[i] = outsideTriangles[i] - inside.Count;
-        }
-
-        int[] insideTriangles = { 0};
-        
-        for(int i = outsideTriangles.Length; i < mesh.triangles.Length; i++)
-        {
-            insideTriangles[i] = insideTriangles[i];
-        }*/
-
-        /*int[] outsideTriangles = new int[mesh.triangles.Length - inside.Count];
-        for (int i = 0; i < mesh.triangles.Length - inside.Count; i++)
-        {
-            outsideTriangles[i] = mesh.triangles[i];
-        }
-
-        int[] insideTriangles = new int[inside.Count];
-        for(int i = inside.Count; i < mesh.triangles.Length; i++)
-        {
-            insideTriangles[i] = mesh.triangles[i];
-        }
-
-        Debug.Log("Outside  :  " + outsideTriangles.Length + "   Inside  :  " + insideTriangles.Length);
-        mesh.SetTriangles(outsideTriangles, 0);
-        mesh.SetTriangles(insideTriangles, 1);*/
-
-
-        /// \/\/\/\/ the good stuff
-        /*int insideIndex = outside.Count - inside.Count;
-        for (int i = 0; i < insideIndex; i++)
-        {
-            mesh.SetTriangles(mesh.triangles, 0);
-        }
-        for (int i = insideIndex; i < outside.Count; i++)
-        {
-            mesh.SetTriangles(mesh.triangles, 1);
-        }*/
-
-
-        // works technically as seen before, might be that triagnles are overlapping?? maybe 
-        // 15 shows inside barely
-        int[] outsideTriangles = new int[mesh.triangles.Length - ((inside.Count))];
+        int[] outsideTriangles = new int[((mesh.triangles.Length - 132) * inside.Count)];
         int[] insideTriangles = new int[mesh.triangles.Length - outsideTriangles.Length];
-
+        
+        Debug.Log(outsideTriangles.Length + "    " + insideTriangles.Length);
         for (int i = 0; i < mesh.triangles.Length; i++)
         {
             if (i < outsideTriangles.Length)
@@ -291,11 +248,9 @@ public class ObjectSplit : MonoBehaviour
                 insideTriangles[i - outsideTriangles.Length] = mesh.triangles[i];
             }
         }
-        Debug.Log("Outside  :  " + outsideTriangles.Length + "   Inside  :  " + insideTriangles.Length);
         mesh.SetTriangles(outsideTriangles, 0);
         mesh.SetTriangles(insideTriangles, 1);
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
+
         meshRenderer.materials = _materials;
 
         MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
@@ -330,8 +285,8 @@ public class ObjectSplit : MonoBehaviour
         indicies.Clear();
         uvs.Clear();
 
-        mesh.RecalculateBounds();
         mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
     }
 
 

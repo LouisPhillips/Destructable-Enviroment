@@ -601,7 +601,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   offset: 7
-  turnRotation: 45
+  turnRotation: 90
 --- !u!114 &426917416
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -673,7 +673,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!212 &795519601
 SpriteRenderer:
   m_ObjectHideFlags: 0
