@@ -7,7 +7,7 @@ public class SwordMovement : MonoBehaviour
     Vector3 mousePos;
     public float offset = 3f;
     float oppositeAngle = 0;
-    public float turnRotation = 15f;
+    public float turnRotation = 90f;
     // Update is called once per frame
     void Update()
     {

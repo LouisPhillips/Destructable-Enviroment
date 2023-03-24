@@ -22,16 +22,16 @@ public class Slice : MonoBehaviour
     {
         if (collider.gameObject.tag == ("Slicable"))
         {
-            GetComponent<ObjectSplit>().SliceObject(collider);
+            //GetComponent<ObjectSplit>().SliceObject(collider);
         }
     }
 
     private void OnCollisionEnter(UnityEngine.Collision collider)
     {
-        /*if (collider.gameObject.tag == ("Slicable"))
+        if (collider.gameObject.tag == ("Slicable"))
         {
             GetComponent<ObjectSplit>().SliceObject(collider);
-        }*/
+        }
     }
 
     /*private void OnCollisionExit(UnityEngine.Collision collider)

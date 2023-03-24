@@ -8,8 +8,7 @@ public class ObjectSplit : MonoBehaviour
 
     List<MeshData.Triangle> leftTriangles;
     List<MeshData.Triangle> rightTriangles;
-
-    public void SliceObject(Collider other)
+    public void SliceObject(UnityEngine.Collision other)
     {
         Plane plane = CreatePlane();
 
@@ -36,7 +35,7 @@ public class ObjectSplit : MonoBehaviour
     }
 
 
-    void GetVertices(Collider collisionObject, Plane plane, Vector2[] uvs, int[] tris, Vector3[] verts, List<Vector3> intersections, List<MeshData.Triangle> newTris1, List<MeshData.Triangle> newTris2)
+    void GetVertices(UnityEngine.Collision collisionObject, Plane plane, Vector2[] uvs, int[] tris, Vector3[] verts, List<Vector3> intersections, List<MeshData.Triangle> newTris1, List<MeshData.Triangle> newTris2)
     {
 
         for (int i = 0; i < tris.Length; i += 3)
@@ -91,7 +90,6 @@ public class ObjectSplit : MonoBehaviour
                 }
             }
         }
-
         MakeObject(plane, intersections, collisionObject);
     }
 
@@ -153,11 +151,10 @@ public class ObjectSplit : MonoBehaviour
 
     }
 
-    void MakeObject(Plane plane, List<Vector3> intersections, Collider original)
+    void MakeObject(Plane plane, List<Vector3> intersections, UnityEngine.Collision original)
     {
         List<MeshData.Triangle> leftInside = new List<MeshData.Triangle>();
         List<MeshData.Triangle> rightInside = new List<MeshData.Triangle>();
-
         if (intersections.Count > 1)
         {
             Vector3 centre = Vector3.zero;
@@ -206,8 +203,8 @@ public class ObjectSplit : MonoBehaviour
             AddComponents(leftGameObject, material, insideMat, leftMesh, leftTriangles, leftInside);
             AddComponents(rightGameObject, material, insideMat, rightMesh, rightTriangles, rightInside);
 
-            GameController.speedChange = GameController.speedChange + 0.25f;
-            Instantiate(original);
+            GameController.speedChange = GameController.speedChange + 0.20f;
+            Instantiate(original.gameObject);
             ObjectLauncher.newZ = Random.RandomRange(-24, 24);
 
             GameObject arrow = GameObject.FindGameObjectWithTag("Arrow");
@@ -218,6 +215,7 @@ public class ObjectSplit : MonoBehaviour
             leftGameObject.GetComponent<Rigidbody>().AddForceAtPosition(transform.position.normalized * 100f, transform.position);
             rightGameObject.GetComponent<Rigidbody>().AddForceAtPosition(transform.position.normalized * 100f, transform.position);
 
+            GameController.score += 100 * GameController.scoreMultiplier;
             Destroy(original.gameObject);
         }
     }
@@ -231,22 +229,74 @@ public class ObjectSplit : MonoBehaviour
 
         MeshRenderer meshRenderer = gameObject.AddComponent<MeshRenderer>();
         Material[] _materials = new Material[2];
-
-        Debug.Log(outside.Count + "   " + inside.Count);
-        int[] outsideCount = new int[outside.Count - inside.Count];
-        int[] insideCount = new int[inside.Count];
-
-        /*mesh.SetTriangles(outsideCount, 0);
-        mesh.SetTriangles(insideCount, 1);*/
-
         _materials[0] = originalMaterial;
         _materials[1] = insideMaterial;
 
 
+        /*int[] outsideTriangles = mesh.triangles;
+        for (int i = 0; i < outsideTriangles.Length; i++)
+        {
+            outsideTriangles[i] = outsideTriangles[i] - inside.Count;
+        }
+
+        int[] insideTriangles = { 0};
+        
+        for(int i = outsideTriangles.Length; i < mesh.triangles.Length; i++)
+        {
+            insideTriangles[i] = insideTriangles[i];
+        }*/
+
+        /*int[] outsideTriangles = new int[mesh.triangles.Length - inside.Count];
+        for (int i = 0; i < mesh.triangles.Length - inside.Count; i++)
+        {
+            outsideTriangles[i] = mesh.triangles[i];
+        }
+
+        int[] insideTriangles = new int[inside.Count];
+        for(int i = inside.Count; i < mesh.triangles.Length; i++)
+        {
+            insideTriangles[i] = mesh.triangles[i];
+        }
+
+        Debug.Log("Outside  :  " + outsideTriangles.Length + "   Inside  :  " + insideTriangles.Length);
+        mesh.SetTriangles(outsideTriangles, 0);
+        mesh.SetTriangles(insideTriangles, 1);*/
+
+
+        /// \/\/\/\/ the good stuff
+        /*int insideIndex = outside.Count - inside.Count;
+        for (int i = 0; i < insideIndex; i++)
+        {
+            mesh.SetTriangles(mesh.triangles, 0);
+        }
+        for (int i = insideIndex; i < outside.Count; i++)
+        {
+            mesh.SetTriangles(mesh.triangles, 1);
+        }*/
+
+
+        // works technically as seen before, might be that triagnles are overlapping?? maybe 
+        // 15 shows inside barely
+        int[] outsideTriangles = new int[mesh.triangles.Length - ((inside.Count))];
+        int[] insideTriangles = new int[mesh.triangles.Length - outsideTriangles.Length];
+
+        for (int i = 0; i < mesh.triangles.Length; i++)
+        {
+            if (i < outsideTriangles.Length)
+            {
+                outsideTriangles[i] = mesh.triangles[i];
+            }
+            else
+            {
+                insideTriangles[i - outsideTriangles.Length] = mesh.triangles[i];
+            }
+        }
+        Debug.Log("Outside  :  " + outsideTriangles.Length + "   Inside  :  " + insideTriangles.Length);
+        mesh.SetTriangles(outsideTriangles, 0);
+        mesh.SetTriangles(insideTriangles, 1);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
         meshRenderer.materials = _materials;
-
-
-        //meshRenderer.material = insideMaterial;
 
         MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
         meshCollider.convex = true;
@@ -268,13 +318,9 @@ public class ObjectSplit : MonoBehaviour
             indicies.Add(index++);
             indicies.Add(index++);
             indicies.Add(index++);
-            /*uvs.Add(new Vector2(1 + Mathf.Sin(t.v1.x * (2 * Mathf.PI / triangleList.Count)), 1 + Mathf.Cos(t.v1.z * (2 * Mathf.PI / triangleList.Count))) * 0.5f);
-            uvs.Add(new Vector2(1 + Mathf.Sin(t.v2.x * (2 * Mathf.PI / triangleList.Count)), 1 + Mathf.Cos(t.v2.z * (2 * Mathf.PI / triangleList.Count))) * 0.5f);
-            uvs.Add(new Vector2(1 + Mathf.Sin(t.v3.x * (2 * Mathf.PI / triangleList.Count)), 1 + Mathf.Cos(t.v3.z * (2 * Mathf.PI / triangleList.Count))) * 0.5f);*/
-
             uvs.Add(new Vector2(t.v1.x, t.v1.z));
             uvs.Add(new Vector2(t.v2.x, t.v2.z));
-            uvs.Add(new Vector2(t.v3.x, t.v3.z));
+            uvs.Add(new Vector2(t.v2.x, t.v1.z));
         }
         mesh.vertices = triangles.ToArray();
         mesh.triangles = indicies.ToArray();
@@ -283,27 +329,6 @@ public class ObjectSplit : MonoBehaviour
         triangles.Clear();
         indicies.Clear();
         uvs.Clear();
-
-        /*//index = 0;
-        foreach (MeshData.Triangle i in insideTriangles)
-        {
-            triangles.Add(i.v1);
-            triangles.Add(i.v2);
-            triangles.Add(i.v3);
-            indicies.Add(index++);
-            indicies.Add(index++);
-            indicies.Add(index++);
-            uvs.Add(new Vector2(i.v1.x, i.v1.z));
-            uvs.Add(new Vector2(i.v2.x, i.v2.z));
-            uvs.Add(new Vector2(i.v3.x, i.v3.z));
-        }
-        mesh.vertices = triangles.ToArray();
-        mesh.triangles = indicies.ToArray();
-        mesh.uv = uvs.ToArray();
-
-        triangles.Clear();
-        indicies.Clear();
-        uvs.Clear();*/
 
         mesh.RecalculateBounds();
         mesh.RecalculateNormals();
