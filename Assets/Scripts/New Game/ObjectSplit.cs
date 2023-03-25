@@ -22,7 +22,7 @@ public class ObjectSplit : MonoBehaviour
         leftTriangles = new List<MeshData.Triangle>();
         rightTriangles = new List<MeshData.Triangle>();
 
-        GetVertices(other, plane, meshData.uvs, meshData.triangles, meshData.verticies, intersections, leftTriangles, rightTriangles);
+        MakeOutsideTriangles(other, plane, meshData.uvs, meshData.triangles, meshData.verticies, intersections, leftTriangles, rightTriangles);
     }
 
     private Plane CreatePlane()
@@ -35,7 +35,7 @@ public class ObjectSplit : MonoBehaviour
     }
 
 
-    void GetVertices(UnityEngine.Collision collisionObject, Plane plane, Vector2[] uvs, int[] tris, Vector3[] verts, List<Vector3> intersections, List<MeshData.Triangle> newTris1, List<MeshData.Triangle> newTris2)
+    void MakeOutsideTriangles(UnityEngine.Collision collisionObject, Plane plane, Vector2[] uvs, int[] tris, Vector3[] verts, List<Vector3> intersections, List<MeshData.Triangle> newTris1, List<MeshData.Triangle> newTris2)
     {
 
         for (int i = 0; i < tris.Length; i += 3)
@@ -75,7 +75,7 @@ public class ObjectSplit : MonoBehaviour
             if (points.Count > 0)
             {
                 // Make new triangles based off entry points
-                MakeNewTriangles(plane, points, collisionPoints, normal);
+                FillTriangles(plane, points, collisionPoints, normal);
             }
             else
             {
@@ -93,7 +93,7 @@ public class ObjectSplit : MonoBehaviour
         MakeObject(plane, intersections, collisionObject);
     }
 
-    void MakeNewTriangles(Plane plane, List<Vector3> points, Vector3[] collisionPoints, Vector3 normal)
+    void FillTriangles(Plane plane, List<Vector3> points, Vector3[] collisionPoints, Vector3 normal)
     {
         List<Vector3> leftSidePoints = new List<Vector3>();
         List<Vector3> rightSidePoints = new List<Vector3>();
@@ -113,42 +113,9 @@ public class ObjectSplit : MonoBehaviour
             }
         }
 
-        if (leftSidePoints.Count == 3)
-        {
-            meshData.MeshTriangle(normal, leftSidePoints[1], leftSidePoints[0], leftSidePoints[2], leftTriangles);
-        }
-        else
-        {
-            if (Vector3.Dot((leftSidePoints[0] - leftSidePoints[1]), leftSidePoints[2] - leftSidePoints[3]) >= 0)
-            {
-                meshData.MeshTriangle(normal, leftSidePoints[0], leftSidePoints[2], leftSidePoints[3], leftTriangles);
-                meshData.MeshTriangle(normal, leftSidePoints[0], leftSidePoints[3], leftSidePoints[1], leftTriangles);
-            }
-            else
-            {
-                meshData.MeshTriangle(normal, leftSidePoints[0], leftSidePoints[3], leftSidePoints[2], leftTriangles);
-                meshData.MeshTriangle(normal, leftSidePoints[0], leftSidePoints[2], leftSidePoints[1], leftTriangles);
-            }
-        }
-
-        if (rightSidePoints.Count == 3)
-        {
-            meshData.MeshTriangle(normal, rightSidePoints[1], rightSidePoints[0], rightSidePoints[2], rightTriangles);
-        }
-        else
-        {
-            if (Vector3.Dot((rightSidePoints[0] - rightSidePoints[1]), rightSidePoints[2] - rightSidePoints[3]) >= 0)
-            {
-                meshData.MeshTriangle(normal, rightSidePoints[0], rightSidePoints[2], rightSidePoints[3], rightTriangles);
-                meshData.MeshTriangle(normal, rightSidePoints[0], rightSidePoints[3], rightSidePoints[1], rightTriangles);
-            }
-            else
-            {
-                meshData.MeshTriangle(normal, rightSidePoints[0], rightSidePoints[3], rightSidePoints[2], rightTriangles);
-                meshData.MeshTriangle(normal, rightSidePoints[0], rightSidePoints[2], rightSidePoints[1], rightTriangles);
-            }
-        }
-
+        // fills trianges between object face and reconstructed object
+        FillSideGap(leftSidePoints, leftTriangles, normal);
+        FillSideGap(rightSidePoints, rightTriangles, normal);
     }
 
     void MakeObject(Plane plane, List<Vector3> intersections, UnityEngine.Collision original)
@@ -163,9 +130,7 @@ public class ObjectSplit : MonoBehaviour
                 centre += vector;
             }
             centre /= intersections.Count;
-
-            Debug.Log("Current Triangles: " + leftTriangles.Count) ;
-            Debug.Log("Current Triangles: " + rightTriangles.Count) ;
+            
             for (int i = 0; i < intersections.Count; i++)
             {
                 // makes inside triangles
@@ -175,7 +140,6 @@ public class ObjectSplit : MonoBehaviour
                 leftInside.RemoveRange(0, leftInside.Count / 2);
                 rightInside.RemoveRange(0, rightInside.Count / 2);
 
-                Debug.Log(leftInside.Count);
                 leftTriangles.AddRange(leftInside);
                 rightTriangles.AddRange(rightInside);
             }
@@ -202,8 +166,8 @@ public class ObjectSplit : MonoBehaviour
             leftGameObject.name = "leftGameObject";
             rightGameObject.name = "rightGameObject";
 
-            AddComponents(leftGameObject, material, insideMat, leftMesh, leftTriangles, leftInside);
-            AddComponents(rightGameObject, material, insideMat, rightMesh, rightTriangles, rightInside);
+            AddComponents(leftGameObject, material, insideMat, leftMesh, leftTriangles, leftInside, intersections);
+            AddComponents(rightGameObject, material, insideMat, rightMesh, rightTriangles, rightInside, intersections);
 
             GameController.speedChange = GameController.speedChange + 0.20f;
             Instantiate(original.gameObject);
@@ -221,7 +185,7 @@ public class ObjectSplit : MonoBehaviour
         }
     }
 
-    void AddComponents(GameObject gameObject, Material originalMaterial, Material insideMaterial, Mesh mesh, List<MeshData.Triangle> outside, List<MeshData.Triangle> inside)
+    void AddComponents(GameObject gameObject, Material originalMaterial, Material insideMaterial, Mesh mesh, List<MeshData.Triangle> outside, List<MeshData.Triangle> inside, List<Vector3> intersections)
     {
         MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
 
@@ -233,11 +197,11 @@ public class ObjectSplit : MonoBehaviour
         _materials[0] = originalMaterial;
         _materials[1] = insideMaterial;
 
-        int[] outsideTriangles = new int[((mesh.triangles.Length - 132) * inside.Count)];
-        int[] insideTriangles = new int[mesh.triangles.Length - outsideTriangles.Length];
-        
-        Debug.Log(outsideTriangles.Length + "    " + insideTriangles.Length);
-        for (int i = 0; i < mesh.triangles.Length; i++)
+        // making new arrays for outside and inside triangles
+        int[] outsideTriangles = new int[(outside.Count - (inside.Count * intersections.Count)) * 3];
+        int[] insideTriangles = new int[(inside.Count * intersections.Count) * 3];
+
+        for (int i = 0; i < outsideTriangles.Length + insideTriangles.Length; i++)
         {
             if (i < outsideTriangles.Length)
             {
@@ -294,5 +258,29 @@ public class ObjectSplit : MonoBehaviour
     {
         intersections.Add(intersection);
         points.Add(intersection);
+    }
+
+    void FillSideGap(List<Vector3> sidePoints, List<MeshData.Triangle> triangles, Vector3 normal)
+    {
+        if (sidePoints.Count == 3)
+        {
+            meshData.MeshTriangle(normal, sidePoints[1], sidePoints[0], sidePoints[2], triangles);
+        }
+        else
+        {
+            Vector3 ab = sidePoints[0] - sidePoints[1];
+            Vector3 cd = sidePoints[2] - sidePoints[3];
+
+            if (Vector3.Dot(ab, cd) >= 0)
+            {
+                meshData.MeshTriangle(normal, sidePoints[0], sidePoints[2], sidePoints[3], triangles);
+                meshData.MeshTriangle(normal, sidePoints[0], sidePoints[3], sidePoints[1], triangles);
+            }
+            else
+            {
+                meshData.MeshTriangle(normal, sidePoints[0], sidePoints[3], sidePoints[2], triangles);
+                meshData.MeshTriangle(normal, sidePoints[0], sidePoints[2], sidePoints[1], triangles);
+            }
+        }
     }
 }
