@@ -601,7 +601,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   offset: 7
-  turnRotation: 90
+  turnRotation: 45
 --- !u!114 &426917416
 MonoBehaviour:
   m_ObjectHideFlags: 0
