@@ -37,39 +37,27 @@ public class ObjectSplit : MonoBehaviour
 
     void MakeOutsideTriangles(UnityEngine.Collision collisionObject, Plane plane, Vector2[] uvs, int[] tris, Vector3[] verts, List<Vector3> intersections, List<MeshData.Triangle> newTris1, List<MeshData.Triangle> newTris2)
     {
-
         for (int i = 0; i < tris.Length; i += 3)
         {
             List<Vector3> points = new List<Vector3>();
-            int[] verticies = new int[] { tris[i], tris[i + 1], tris[i + 2] };
-            Vector3[] collisionPoints = new Vector3[] { collisionObject.transform.TransformPoint(verts[verticies[0]]),
-            collisionObject.transform.TransformPoint(verts[verticies[1]]),
-            collisionObject.transform.TransformPoint(verts[verticies[2]])};
+            int[] vertices = new int[] { tris[i], tris[i + 1], tris[i + 2] };
+            Vector3[] collisionPoints = new Vector3[] { collisionObject.transform.TransformPoint(verts[vertices[0]]),
+            collisionObject.transform.TransformPoint(verts[vertices[1]]),
+            collisionObject.transform.TransformPoint(verts[vertices[2]])};
 
             Vector3 normal = Vector3.Cross(collisionPoints[0] - collisionPoints[1], collisionPoints[0] - collisionPoints[2]);
 
-            Vector3 direction = collisionPoints[1] - collisionPoints[0];
-            float length;
-
-            Vector3 intersection;
-            if (plane.Raycast(new Ray(collisionPoints[0], direction), out length) && length <= direction.magnitude)
+            for (int j = 0; j < 3; j++)
             {
-                intersection = collisionPoints[0] + length * direction.normalized;
-                TriangleIntersection(points, intersections, intersection);
-            }
-            direction = collisionPoints[2] - collisionPoints[1];
+                Vector3 direction = collisionPoints[(j + 1) % 3] - collisionPoints[j];
+                float length;
+                Vector3 intersection;
 
-            if (plane.Raycast(new Ray(collisionPoints[1], direction), out length) && length <= direction.magnitude)
-            {
-                intersection = collisionPoints[1] + length * direction.normalized;
-                TriangleIntersection(points, intersections, intersection);
-            }
-            direction = collisionPoints[2] - collisionPoints[0];
-
-            if (plane.Raycast(new Ray(collisionPoints[0], direction), out length) && length <= direction.magnitude)
-            {
-                intersection = collisionPoints[0] + length * direction.normalized;
-                TriangleIntersection(points, intersections, intersection);
+                if (plane.Raycast(new Ray(collisionPoints[j], direction), out length) && length <= direction.magnitude)
+                {
+                    intersection = collisionPoints[j] + length * direction.normalized;
+                    TriangleIntersection(points, intersections, intersection);
+                }
             }
 
             if (points.Count > 0)
