@@ -26,7 +26,7 @@ public class Slice : MonoBehaviour
         }
     }
 
-    private void OnCollisionEnter(UnityEngine.Collision collider)
+    private void OnCollisionExit(UnityEngine.Collision collider)
     {
         if (collider.gameObject.tag == ("Slicable"))
         {
